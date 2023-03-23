@@ -1,11 +1,8 @@
-#!/usr/bin/python3
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
 # pylint: disable=missing-module-docstring
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=invalid-name
-# pylint: disable=consider-using-f-string
-# pylint: disable=too-many-branches
 
 import logging
 from collections import deque
@@ -20,7 +17,7 @@ class RegisterUnit:
     rs1: int
     rs2: int
 
-    def __init__(self, registers_count: int, stack_vertex: int) -> None:
+    def __init__(self, registers_count: int, stack_vertex: int, ) -> None:
         self.registers = [0] * registers_count
         self.registers[registers_count - 1] = stack_vertex
         self.rd = 0
@@ -43,7 +40,6 @@ class RegisterUnit:
         return self.registers[self.rs2]
 
     def set_dest_data(self, data):
-
         if self.rd != 0:
             self.registers[self.rd] = int(data)
 
@@ -63,32 +59,33 @@ class ALU:
         self.a = b
 
     def compute(self, opcode) -> int:
-        if opcode in (Opcode.AND, Opcode.ANDI):
-            self.output = self.a and self.b
-        elif opcode in (Opcode.OR, Opcode.ORI):
-            self.output = self.a or self.b
-        elif opcode in (Opcode.ADD, Opcode.ADDI):
-            self.output = self.a + self.b
-        elif opcode in (Opcode.SUB, Opcode.SUBI):
-            self.output = self.a - self.b
-        elif opcode in (Opcode.MUL, Opcode.MULI):
-            self.output = self.a * self.b
-        elif opcode in (Opcode.DIV, Opcode.DIVI):
-            self.output = self.a // self.b
-        elif opcode in (Opcode.REM, Opcode.REMI):
-            self.output = self.a % self.b
-        elif opcode in (Opcode.SEQ, Opcode.SEQI):
-            self.output = self.a == self.b
-        elif opcode in (Opcode.SNE, Opcode.SNEI):
-            self.output = self.a != self.b
-        elif opcode in (Opcode.SLT, Opcode.SLTI):
-            self.output = self.a < self.b
-        elif opcode in (Opcode.SNL, Opcode.SNLI):
-            self.output = self.a >= self.b
-        elif opcode in (Opcode.SGT, Opcode.SGTI):
-            self.output = self.a > self.b
-        elif opcode in (Opcode.SNG, Opcode.SNGI):
-            self.output = self.a <= self.b
+        match opcode:
+            case Opcode.AND | Opcode.ANDI:
+                self.output = self.a and self.b
+            case Opcode.OR | Opcode.ORI:
+                self.output = self.a or self.b
+            case Opcode.ADD | Opcode.ADDI:
+                self.output = self.a + self.b
+            case Opcode.SUB | Opcode.SUBI:
+                self.output = self.a - self.b
+            case Opcode.MUL | Opcode.MULI:
+                self.output = self.a * self.b
+            case Opcode.DIV | Opcode.DIVI:
+                self.output = self.a // self.b
+            case Opcode.REM | Opcode.REMI:
+                self.output = self.a % self.b
+            case Opcode.SEQ | Opcode.SEQI:
+                self.output = self.a == self.b
+            case Opcode.SNE | Opcode.SNEI:
+                self.output = self.a != self.b
+            case Opcode.SLT | Opcode.SLTI:
+                self.output = self.a < self.b
+            case Opcode.SNL | Opcode.SNLI:
+                self.output = self.a >= self.b
+            case Opcode.SGT | Opcode.SGTI:
+                self.output = self.a > self.b
+            case Opcode.SNG | Opcode.SNGI:
+                self.output = self.a <= self.b
         self.output = int(self.output)
         return self.output
 
@@ -106,8 +103,8 @@ class BranchComparator:
         self.rs2 = rs2
 
     def compare(self) -> tuple[bool, bool]:
-        return self.rs1 == self.rs2,\
-            self.rs1 < self.rs2
+        return self.rs1 == self.rs2, \
+               self.rs1 < self.rs2
 
 
 class IO:
@@ -127,11 +124,11 @@ class IO:
         self.output_buffer.append(character)
 
 
-class DataPath():
+class DataPath:
+    program_memory: list
+    data_memory: list
     program_counter: int
     data_address: int
-    data_memory_size: int
-    memory: list
     ru: RegisterUnit
     alu: ALU
     bc: BranchComparator
@@ -139,26 +136,26 @@ class DataPath():
 
     imm_gen: int
 
-    def __init__(self, program: list, memory_size: int, input_buffer: list):
-        assert memory_size > 0, "Data_memory size should be non-zero"
-        self.memory_size = memory_size
+    def __init__(
+            self, data: list, program: list,
+            stack_size: int, input_buffer: list):
+        assert stack_size > 0, "the stack size must be greater than zero"
         self.data_address = 0
         self.program_counter = 0
-        while not isinstance(program[self.program_counter], dict):
-            self.program_counter = self.program_counter + 1
-        self.memory = program + ([0] * (memory_size - self.program_counter))
 
+        self.data_memory = data + [0] * stack_size
+        self.program_memory = program
         self.io = IO([ord(token) for token in input_buffer])
         self.imm_gen = 0
         self.instr = {"opcode": Opcode("HALT"), "args": []}
-        self.args: deque[str]
         self.current_data = 0
-        self.ru = RegisterUnit(5, stack_vertex=len(self.memory) - 1)
+
+        self.ru = RegisterUnit(5, stack_vertex=len(self.data_memory) - 1)
         self.alu = ALU()
         self.bc = BranchComparator()
 
     def select_instruction(self) -> Opcode:
-        self.instr = self.memory[self.program_counter]
+        self.instr = self.program_memory[self.program_counter]
         self.program_counter += 1
         args = tuple(map(int, self.instr['args']))
         opcode = Opcode(self.instr["opcode"])
@@ -180,10 +177,10 @@ class DataPath():
             self.ru.rs1 = args[0]
             self.ru.rs2 = args[1]
             self.imm_gen = args[2]
-        elif opcode in ops_gr['arith']:
+        elif opcode in ops_gr['arithmetic']:
             self.ru.rd = args[0]
             self.ru.rs1 = args[1]
-            if opcode in ops_gr["imm"]:
+            if opcode in ops_gr["immediate"]:
                 self.imm_gen = args[2]
             else:
                 self.ru.rs2 = args[2]
@@ -211,22 +208,23 @@ class DataPath():
             self.current_data = self.io.input()
         else:
             self.data_address = self.ru.get_rs1_data()
-            self.current_data = self.memory[self.data_address]
+            self.current_data = self.data_memory[self.data_address]
 
     def store_data_to_memory_from_reg(self):
         """Загружает данные в память"""
         if self.ru.get_rs1_data() == STDOUT:
-            self.io.output(chr(self.ru.get_rs2_data()))
+            self.io.output(
+                chr(self.ru.get_rs2_data())
+            )
         else:
-            self.memory[self.ru.get_rs1_data()
-                        ] = self.ru.get_rs2_data()
+            self.data_memory[self.ru.get_rs1_data()] = self.ru.get_rs2_data()
 
     def store_data_to_memory_from_imm(self):
         """Загружает данные в память"""
         if self.ru.get_rs1_data() == STDOUT:
             self.io.output(chr(self.imm_gen))
         else:
-            self.memory[self.ru.get_rs1_data(
+            self.data_memory[self.ru.get_rs1_data(
             )] = self.imm_gen
 
     def latch_address_to_memory_from_imm(self):
@@ -236,14 +234,14 @@ class DataPath():
             self.current_data = self.io.input()
         else:
             self.data_address = self.imm_gen
-            self.current_data = self.memory[self.data_address]
+            self.current_data = self.data_memory[self.data_address]
 
     def latch_reg_from_memory(self):
         """Значение из памяти перезаписывает регистр"""
         self.ru.set_dest_data(self.current_data)
 
     def latch_reg_from_alu(self):
-        """ALU перезаписывает регистр"""
+        """АЛУ перезаписывает регистр"""
         self.ru.set_dest_data(self.alu.output)
 
     def latch_program_counter(self):
@@ -252,12 +250,12 @@ class DataPath():
 
     def latch_regs_to_bc(self):
         """Загружает регистры в Branch Comparator."""
-        self.bc.rs1, self.bc.rs2 =\
+        self.bc.rs1, self.bc.rs2 = \
             self.ru.get_rs1_data(), self.ru.get_rs2_data()
         return self.bc.compare()
 
 
-class ControlUnit():
+class ControlUnit:
     data_path: DataPath
 
     def __init__(self, data_path):
@@ -265,8 +263,10 @@ class ControlUnit():
         self._tick = 0
 
     def tick(self):
-        """Счётчик тактов процессора.
-        Вызывается при переходе на следующий такт."""
+        """
+        Счётчик тактов процессора.
+        Вызывается при переходе на следующий такт.
+        """
         self._tick += 1
 
     def current_tick(self):
@@ -306,7 +306,7 @@ class ControlUnit():
         elif opcode is Opcode.SWI:
             self.data_path.store_data_to_memory_from_imm()
         else:
-            if opcode in ops_gr["imm"]:
+            if opcode in ops_gr["immediate"]:
                 self.data_path.latch_imm_to_alu()
             else:
                 self.data_path.latch_rs2_to_alu()
@@ -319,31 +319,28 @@ class ControlUnit():
         self.tick()
 
     def __repr__(self):
-        state = "{{TICK: {}, PC: {}, ADDR: {}}}".format(
-            self._tick,
-            self.data_path.program_counter,
-            self.data_path.data_address
-        )
+        state = f"{{" \
+                f"TICK: {self._tick}, " \
+                f"PC: {self.data_path.program_counter}, " \
+                f"ADDR: {self.data_path.data_address}}}"
 
-        registers = "{{[rd: {}, rs1: {}, rs2: {}, imm: {}]  Regs {} }}".format(
-            self.data_path.ru.rd,
-            self.data_path.ru.rs1,
-            self.data_path.ru.rs2,
-            self.data_path.imm_gen,
-            f"[{' '.join([str(reg) for reg in self.data_path.ru.registers])}]"
-        )
+        extra = ' '.join([str(reg) for reg in self.data_path.ru.registers])
+        registers = f"{{[" \
+                    f"rd: {self.data_path.ru.rd}, " \
+                    f"rs1: {self.data_path.ru.rs1}, " \
+                    f"rs2: {self.data_path.ru.rs2}, " \
+                    f"imm: {self.data_path.imm_gen}]  " \
+                    f"Regs {extra}}}"
 
         opcode = self.data_path.instr["opcode"]
         args = self.data_path.instr['args']
-        action = "{} {}".format(
-            opcode, f"[{' '.join([str(arg) for arg in args])}]")
-        alu = "ALU [a:{} b:{} output:{}]".format(
-            self.data_path.alu.a,
-            self.data_path.alu.b,
-            self.data_path.alu.output
-        )
+        action = f"{opcode} {' '.join([str(arg) for arg in args])}"
+        alu = f"ALU [" \
+              f"a:{self.data_path.alu.a} " \
+              f"b:{self.data_path.alu.b} " \
+              f"output:{self.data_path.alu.output}]"
 
-        return "{:30} {:40} {:30} {:30} ".format(state, registers, alu, action)
+        return f"{state:30} {registers:40} {alu:30} {action:30} "
 
 
 def show_memory(data_memory):
@@ -366,12 +363,12 @@ def show_memory(data_memory):
             instr += "   "
             instr += ', '.join(map(str, cell['args']))
             data_memory_state += f"[{{{address:6}}}\
-        [{address_br:12}]  -> [{'?'*32}] = {instr:12}\n"
+        [{address_br:12}]  -> [{'?' * 32}] = {instr:12}\n"
 
     return data_memory_state
 
 
-def simulation(program: list[dict], input_tokens, data_memory_size, limit):
+def simulation(data: list, program: list, input_tokens, stack_size, limit):
     """Запуск симуляции процессора.
 
     Длительность моделирования ограничена количеством выполненных инструкций.
@@ -380,7 +377,7 @@ def simulation(program: list[dict], input_tokens, data_memory_size, limit):
     logging.info("{ INPUT TOKENS  } [ %s ]", ",".join(
         [str(ord(token)) for token in input_tokens]))
 
-    data_path = DataPath(program, data_memory_size, input_tokens)
+    data_path = DataPath(data, program, stack_size, input_tokens)
     control_unit = ControlUnit(data_path)
     instr_counter = 0
 
@@ -396,17 +393,21 @@ def simulation(program: list[dict], input_tokens, data_memory_size, limit):
     except StopIteration:
         pass
 
-    return ''.join(data_path.io.output_buffer), instr_counter,\
-        control_unit.current_tick(), show_memory(data_path.memory)
+    return ''.join(data_path.io.output_buffer), \
+           instr_counter, \
+           control_unit.current_tick(), \
+           show_memory(data_path.data_memory), \
+           show_memory(data_path.program_memory)
 
 
 def main(args):
-
-    assert len(args) == 2,\
+    assert len(args) == 2, \
         "Wrong arguments: machine.py <code.json> <input>"
     code_file, input_file = args
 
-    program = read_code(code_file)
+    data_and_program = read_code(code_file)
+    data = data_and_program["data"]
+    program = data_and_program["program"]
     with open(input_file, encoding="utf-8") as file:
         input_text = file.read()
         input_token = []
@@ -414,14 +415,14 @@ def main(args):
             input_token.append(char)
     input_token.append(chr(0))
 
-    output, instr_counter, ticks, data_memory_state = "", "", "", ""
-    output, instr_counter, ticks, data_memory_state = simulation(
-        program,
+    output, instr_counter, ticks, data_memory, program_memory = simulation(
+        data, program,
         input_tokens=input_token,
-        data_memory_size=75,
+        stack_size=25,
         limit=20000
     )
-    logging.info("%s", f"Memory map is\n{data_memory_state}")
+    logging.info("%s", f"Data memory map is\n{data_memory}")
+    logging.info("%s", f"Program memory map is\n{program_memory}")
 
     print(f"Output is `{''.join(output)}`")
     print(f"instr_counter: {instr_counter} ticks: {ticks}")

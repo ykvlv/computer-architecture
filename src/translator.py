@@ -1,18 +1,14 @@
-#!/usr/bin/python3
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
-# pylint: disable=invalid-name
-# pylint: disable=too-many-statements
-# pylint: disable=too-many-branches
 # pylint: disable=missing-module-docstring
 # pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-nested-blocks
+# pylint: disable=invalid-name
+# pylint: disable=too-many-statements
 
 import sys
 from typing import NamedTuple, Any, Callable
 from collections import deque
 import re
-
 
 from src.isa import Opcode, write_code, STDIN, STDOUT
 
@@ -30,13 +26,13 @@ def pre_process(raw: str) -> str:
         lines.append(line)
 
     text = " ".join(lines)
-    text = re.sub(r"[\n]", " ", text)
+    text = re.sub(r"\n", " ", text)
 
     return text
 
 
-keyworlds = set(["val", "while", "if"])
-keychars = set([";", ","])
+keywords = {"val", "while", "if"}
+key_chars = {";", ","}
 operators = {
     "=": 0,
     "==": 1,
@@ -63,97 +59,99 @@ brackets = {
     ")": -4
 }
 
-curly_braces = {
+braces = {
     "{": 4,
     "}": -4
 }
 
-
-breakers = set().union(operators)\
-    .union(parenthesis).union(brackets)\
-    .union(curly_braces).union(keychars)
+breakers = set().union(operators) \
+    .union(parenthesis).union(brackets) \
+    .union(braces).union(key_chars)
 breakers.add(";")
 
-breakers_by_lenght: dict = {0: set()}
+breakers_by_length: dict = {0: set()}
 
 
 def get_breaker_by_length(breaker_length):
     return set(
-        map(lambda breaker: breaker[:breaker_length], filter(
-            lambda breaker: len(breaker) >= length,
-            breakers)
+        map(
+            lambda breaker: breaker[:breaker_length], filter(
+                lambda breaker: len(breaker) >= length,
+                breakers
             )
+        )
     )
 
 
 for length in range(1, max(map(len, breakers)) + 1):
-    breakers_by_lenght[length] = get_breaker_by_length(length)
-breakers_by_lenght[max(list(breakers_by_lenght)) + 1] = set()
+    breakers_by_length[length] = get_breaker_by_length(length)
+breakers_by_length[max(list(breakers_by_length)) + 1] = set()
 
 
 def tokenize(processed_text):
     # parts will contain part of source text divided by "'"
     # every uneven part is a string literal and that don't need to tokenize
-    # thus it's a token byself
+    # thus it's a token itself
     parts = deque()
     part_start_idx = 0
     for char_idx, char in enumerate(processed_text):
-        if char == "'":
-            if char_idx > 0 and processed_text[char_idx - 1] != "\\":
-                parts.append(processed_text[part_start_idx:char_idx])
-                part_start_idx = char_idx + 1
+        if char == "'" \
+                and char_idx > 0 \
+                and processed_text[char_idx - 1] != "\\":
+            parts.append(processed_text[part_start_idx:char_idx])
+            part_start_idx = char_idx + 1
     parts.append(processed_text[part_start_idx:])
 
     tokens = deque()
 
     for part_idx, part in enumerate(parts):
-        if part_idx % 2 == 0:
-            # such difficulty only for one sort of cases: =,!=,==
-            npart = bytearray()
-            keyword = bytearray()
-            for char in part:
-                if keyword:
-                    if f"{keyword.decode('utf-8')}{char}" in \
-                            breakers_by_lenght[len(keyword) + 1]:
-                        keyword.append(ord(char))
-                    else:
-                        if keyword.decode("utf-8") in breakers:
-                            npart.append(ord(" "))
-                            npart.extend(keyword)
-                            npart.append(ord(" "))
-                            keyword.clear()
-                        else:
-                            npart.extend(keyword)
-                            keyword.clear()
-                        npart.append(ord(char))
-                elif char in breakers_by_lenght[1]:
+        if part_idx % 2 != 0:
+            tokens.append(f"'{part}'")
+            continue
+        # such difficulty only for one sort of cases: =,!=,==
+        n_part = bytearray()
+        keyword = bytearray()
+        for char in part:
+            if keyword:
+                if f"{keyword.decode('utf-8')}{char}" in \
+                        breakers_by_length[len(keyword) + 1]:
                     keyword.append(ord(char))
                 else:
-                    npart.append(ord(char))
+                    if keyword.decode("utf-8") in breakers:
+                        n_part.append(ord(" "))
+                        n_part.extend(keyword)
+                        n_part.append(ord(" "))
+                        keyword.clear()
+                    else:
+                        n_part.extend(keyword)
+                        keyword.clear()
+                    n_part.append(ord(char))
+            elif char in breakers_by_length[1]:
+                keyword.append(ord(char))
+            else:
+                n_part.append(ord(char))
 
-            part = npart.decode("utf-8")
+        part = n_part.decode("utf-8")
 
-            part = part.replace("[", " @ [")
-            part = part.replace("]", " ] ")
+        part = part.replace("[", " @ [")
+        part = part.replace("]", " ] ")
 
-            part = re.sub("[ ]+", " ", part)
+        part = re.sub(" +", " ", part)
 
-            tokens.extend(filter(lambda token: token, part.split(" ")))
-        else:
-            tokens.append(f"'{part}'")
+        tokens.extend(filter(lambda token: token, part.split(" ")))
     return list(tokens)
 
 
 class ASTParserUnit:
     """
-    Intermediate Representation
+    Промежуточное представление
     """
 
     def __init__(self) -> None:
         self.terms: deque = deque()
         self.nesting_level: deque = deque()
 
-    def getCurrentTerm(self) -> deque:
+    def get_current_term(self) -> deque:
         max_level = len(self.nesting_level)
         if max_level == 0:
             return self.terms
@@ -165,52 +163,52 @@ class ASTParserUnit:
                 return term
         return term
 
-    def driveIn(self):
-        term = self.getCurrentTerm()
+    def drive_in(self):
+        term = self.get_current_term()
         term.append([])
         self.nesting_level.append(len(term) - 1)
 
-    def addToken(self, token):
-        self.getCurrentTerm().append(token)
+    def add_token(self, token):
+        self.get_current_term().append(token)
 
-    def driveOut(self):
-        term = self.getCurrentTerm()
+    def drive_out(self):
+        term = self.get_current_term()
         if term and not term[-1]:
             term.pop()
         self.nesting_level.pop()
 
-    def exportTerms(self):
+    def export_terms(self):
         if self.terms and not self.terms[-1]:
             self.terms.pop()
         return list(self.terms)
 
 
-def buildAST(tokens: list[str]):
+def build_ast(tokens: list[str]):
     # memorized all variables
-    parseUnit = ASTParserUnit()
-    parseUnit.driveIn()
+    parse_unit = ASTParserUnit()
+    parse_unit.drive_in()
     for token in tokens:
         if token in ['if', 'while']:
-            parseUnit.addToken(token)
+            parse_unit.add_token(token)
         elif token == '(':
-            parseUnit.driveIn()
+            parse_unit.drive_in()
         elif token == '{':
-            parseUnit.driveIn()
-            parseUnit.driveIn()
+            parse_unit.drive_in()
+            parse_unit.drive_in()
         elif token == ')':
-            parseUnit.driveOut()
+            parse_unit.drive_out()
         elif token == '}':
-            parseUnit.driveOut()
-            parseUnit.driveOut()
-            parseUnit.driveOut()
-            parseUnit.driveIn()
+            parse_unit.drive_out()
+            parse_unit.drive_out()
+            parse_unit.drive_out()
+            parse_unit.drive_in()
         elif token == ';':
-            parseUnit.driveOut()
-            parseUnit.driveIn()
+            parse_unit.drive_out()
+            parse_unit.drive_in()
         else:
-            parseUnit.addToken(token)
+            parse_unit.add_token(token)
 
-    return parseUnit.exportTerms()
+    return parse_unit.export_terms()
 
 
 class Expression(NamedTuple):
@@ -234,7 +232,7 @@ def last_min_op(exprs):
 
 def parse_expression(tokens):
     # linearization
-    while any(map(lambda token: isinstance(token, list), tokens)):
+    while any(map(lambda t: isinstance(t, list), tokens)):
         linearized_tokens = deque()
         for token in tokens:
             if isinstance(token, list):
@@ -273,7 +271,7 @@ def parse_expression(tokens):
         else:
             left = resolve(ops[:op_ptr])
 
-        return (expr[ops[op_ptr][INDEX]][OP], left, right)
+        return expr[ops[op_ptr][INDEX]][OP], left, right
 
     return resolve(list(ops)) if len(ops) else tokens[0]
 
@@ -342,32 +340,33 @@ class Translator:
                 self.op["ADDI"](self.SP, self.SP, 1)
                 self.op["LW"](self.X1, self.SP)
 
-                if operation == '==':
-                    self.op["SEQ"](self.X3, self.X1, self.X2)
-                elif operation == '!=':
-                    self.op["SNE"](self.X3, self.X1, self.X2)
-                elif operation == '>':
-                    self.op["SGT"](self.X3, self.X1, self.X2)
-                elif operation == '<':
-                    self.op["SLT"](self.X3, self.X1, self.X2)
-                elif operation == '>=':
-                    self.op["SNL"](self.X3, self.X1, self.X2)
-                elif operation == '<=':
-                    self.op["SNG"](self.X3, self.X1, self.X2)
-                elif operation == '&':
-                    self.op["AND"](self.X3, self.X1, self.X2)
-                elif operation == '|':
-                    self.op["OR"](self.X3, self.X1, self.X2)
-                elif operation == '+':
-                    self.op["ADD"](self.X3, self.X1, self.X2)
-                elif operation == '-':
-                    self.op["SUB"](self.X3, self.X1, self.X2)
-                elif operation == '*':
-                    self.op["MUL"](self.X3, self.X1, self.X2)
-                elif operation == '/':
-                    self.op["DIV"](self.X3, self.X1, self.X2)
-                elif operation == '%':
-                    self.op["REM"](self.X3, self.X1, self.X2)
+                match operation:
+                    case '==':
+                        self.op["SEQ"](self.X3, self.X1, self.X2)
+                    case '!=':
+                        self.op["SNE"](self.X3, self.X1, self.X2)
+                    case '>':
+                        self.op["SGT"](self.X3, self.X1, self.X2)
+                    case '<':
+                        self.op["SLT"](self.X3, self.X1, self.X2)
+                    case '>=':
+                        self.op["SNL"](self.X3, self.X1, self.X2)
+                    case '<=':
+                        self.op["SNG"](self.X3, self.X1, self.X2)
+                    case '&':
+                        self.op["AND"](self.X3, self.X1, self.X2)
+                    case '|':
+                        self.op["OR"](self.X3, self.X1, self.X2)
+                    case '+':
+                        self.op["ADD"](self.X3, self.X1, self.X2)
+                    case '-':
+                        self.op["SUB"](self.X3, self.X1, self.X2)
+                    case '*':
+                        self.op["MUL"](self.X3, self.X1, self.X2)
+                    case '/':
+                        self.op["DIV"](self.X3, self.X1, self.X2)
+                    case '%':
+                        self.op["REM"](self.X3, self.X1, self.X2)
 
                 self.op["SW"](self.SP, self.X3)
                 self.op["SUBI"](self.SP, self.SP, 1)
@@ -431,128 +430,132 @@ class Translator:
                 else:
                     self.memory.append(0)
 
-    def _translate_(self, term: list):
-        if not term or term[0] == "val":
+    def _translate(self, term: list):
+        if not term:
             return
-        if term[0] in ["if", "while"]:
-            keyword = term[0]
-            condition = term[1]
-            body = term[2]
-            condition_start = self.pc
-            self.solve(parse_expression(condition))
-            self.op["ADDI"](self.SP, self.SP, 1)
-            self.op["LW"](self.X1, self.SP)
-            self.op["BEQ"](self.X1, self.X0, self.FISH)
-            self.append_unresolved_address()
-            # block init
-
-            for _term_ in body:
-                self._translate_(_term_)
-
-            # end blocks
-            if keyword == 'while':
-                self.op["JMP"](condition_start)
-            self.resolve_address()
-        elif term[0] == 'get':
-            mvalue = parse_expression(term[1:])
-            self.addr(mvalue)
-            self.op["ADDI"](self.SP, self.SP, 1)
-            self.op["LW"](self.X1, self.SP)
-            self.op["LWI"](self.X3, STDIN)
-            self.op["SW"](self.X1, self.X3)
-        elif term[0] == 'put':
-            if term[1].isdigit():
-                self.op["ADDI"](self.X1, self.X0, term[1])
-            else:
-                vvalue = parse_expression(term[1:])
-                self.solve(vvalue)
+        match term[0]:
+            case 'val':
+                self.allocate(term)
+            case "if" | "while":
+                keyword = term[0]
+                condition = term[1]
+                body = term[2]
+                condition_start = self.pc
+                self.solve(parse_expression(condition))
                 self.op["ADDI"](self.SP, self.SP, 1)
                 self.op["LW"](self.X1, self.SP)
-            self.op["ADDI"](self.X2, self.X0, STDOUT)
-            # self.op["ADDI"](self.X1, self.X1, ord('0'))
-            self.op["SW"](self.X2, self.X1)
-
-        elif term[0] == 'gets':
-            self.op["LWI"](self.X2, self.vars[term[1]])
-            self.op["LWI"](self.X1, STDIN)
-            self.op["BEQ"](self.X1, self.X0, self.FISH)
-            self.append_unresolved_address()
-            self.op["SW"](self.X2, self.X1)
-            self.op["ADDI"](self.X2, self.X2, 1)
-            self.op["JMP"](self.pc - 4)
-            self.resolve_address()
-        elif term[0] == 'puts':
-            if (term[1][0], term[1][-1]) == ("'", "'"):
-                self.op["SW"](self.SP, self.X0)
-                self.op["ADD"](self.X3, self.SP, self.X0)
-                self.op["SUBI"](self.SP, self.SP, 1)
-                for character in (term[1])[1:-1]:
-                    self.op["ADDI"](self.X1, self.X0, ord(character))
-                    self.op["SW"](self.SP, self.X1)
-                    self.op["SUBI"](self.SP, self.SP, 1)
-                # write string
-                self.op["ADD"](self.SP, self.X3, self.X0)
-
-                self.op["SUBI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X1, self.SP)
-                self.op["SW"](self.SP, self.X0)
                 self.op["BEQ"](self.X1, self.X0, self.FISH)
                 self.append_unresolved_address()
+                # block init
 
+                for _term_ in body:
+                    self._translate(_term_)
+
+                # end blocks
+                if keyword == 'while':
+                    self.op["JMP"](condition_start)
+                self.resolve_address()
+            case 'get':
+                m_value = parse_expression(term[1:])
+                self.addr(m_value)
+                self.op["ADDI"](self.SP, self.SP, 1)
+                self.op["LW"](self.X1, self.SP)
+                self.op["LWI"](self.X3, STDIN)
+                self.op["SW"](self.X1, self.X3)
+            case 'put':
+                if term[1].isdigit():
+                    self.op["ADDI"](self.X1, self.X0, term[1])
+                else:
+                    vvalue = parse_expression(term[1:])
+                    self.solve(vvalue)
+                    self.op["ADDI"](self.SP, self.SP, 1)
+                    self.op["LW"](self.X1, self.SP)
                 self.op["ADDI"](self.X2, self.X0, STDOUT)
+                # self.op["ADDI"](self.X1, self.X1, ord('0'))
                 self.op["SW"](self.X2, self.X1)
 
-                self.op["JMP"](self.pc - 6)
-
-                self.resolve_address()
-
-                self.op["ADD"](self.SP, self.X3, self.X0)
-            else:
-                self.op["LWI"](
-                    self.X2, self.vars[term[1]])
-                self.op["LW"](self.X1, self.X2)
+            case 'gets':
+                self.op["LWI"](self.X2, self.vars[term[1]])
+                self.op["LWI"](self.X1, STDIN)
                 self.op["BEQ"](self.X1, self.X0, self.FISH)
                 self.append_unresolved_address()
-
-                self.op["ADDI"](self.X3, self.X0, STDOUT)
-                self.op["SW"](self.X3, self.X1)
+                self.op["SW"](self.X2, self.X1)
                 self.op["ADDI"](self.X2, self.X2, 1)
-                self.op["JMP"](self.pc - 5)
+                self.op["JMP"](self.pc - 4)
                 self.resolve_address()
-        else:
-            operation = term.index('=')
-            mvalue = parse_expression(term[:operation])
-            expression = parse_expression(term[operation + 1:])
-            self.addr(mvalue)
-            if (expression[0], expression[-1]) == ("'", "'"):
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X2, self.SP)
-                self.op["LW"](self.X3, self.X2)
-                for char in expression[1:-1]:
-                    self.op["SWI"](self.X3, ord(char))
-                    self.op["ADDI"](self.X3, self.X3, 1)
-            else:
-                self.solve(expression)
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X2, self.SP)
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X1, self.SP)
-                self.op["SW"](self.X1, self.X2)
+            case 'puts':
+                if (term[1][0], term[1][-1]) == ("'", "'"):
+                    self.op["SW"](self.SP, self.X0)
+                    self.op["ADD"](self.X3, self.SP, self.X0)
+                    self.op["SUBI"](self.SP, self.SP, 1)
+                    for character in (term[1])[1:-1]:
+                        self.op["ADDI"](self.X1, self.X0, ord(character))
+                        self.op["SW"](self.SP, self.X1)
+                        self.op["SUBI"](self.SP, self.SP, 1)
+                    # write string
+                    self.op["ADD"](self.SP, self.X3, self.X0)
+
+                    self.op["SUBI"](self.SP, self.SP, 1)
+                    self.op["LW"](self.X1, self.SP)
+                    self.op["SW"](self.SP, self.X0)
+                    self.op["BEQ"](self.X1, self.X0, self.FISH)
+                    self.append_unresolved_address()
+
+                    self.op["ADDI"](self.X2, self.X0, STDOUT)
+                    self.op["SW"](self.X2, self.X1)
+
+                    self.op["JMP"](self.pc - 6)
+
+                    self.resolve_address()
+
+                    self.op["ADD"](self.SP, self.X3, self.X0)
+                else:
+                    self.op["LWI"](
+                        self.X2, self.vars[term[1]])
+                    self.op["LW"](self.X1, self.X2)
+                    self.op["BEQ"](self.X1, self.X0, self.FISH)
+                    self.append_unresolved_address()
+
+                    self.op["ADDI"](self.X3, self.X0, STDOUT)
+                    self.op["SW"](self.X3, self.X1)
+                    self.op["ADDI"](self.X2, self.X2, 1)
+                    self.op["JMP"](self.pc - 5)
+                    self.resolve_address()
+            case _:
+                operation = term.index('=')
+                m_value = parse_expression(term[:operation])
+                expression = parse_expression(term[operation + 1:])
+                self.addr(m_value)
+                if (expression[0], expression[-1]) == ("'", "'"):
+                    self.op["ADDI"](self.SP, self.SP, 1)
+                    self.op["LW"](self.X2, self.SP)
+                    self.op["LW"](self.X3, self.X2)
+                    for char in expression[1:-1]:
+                        self.op["SWI"](self.X3, ord(char))
+                        self.op["ADDI"](self.X3, self.X3, 1)
+                else:
+                    self.solve(expression)
+                    self.op["ADDI"](self.SP, self.SP, 1)
+                    self.op["LW"](self.X2, self.SP)
+                    self.op["ADDI"](self.SP, self.SP, 1)
+                    self.op["LW"](self.X1, self.SP)
+                    self.op["SW"](self.X1, self.X2)
 
     def translate(self, terms):
-        self.program = deque()
         self.unresolved_addresses = deque()
+        self.program = deque()
+        self.pc = 0
 
         for term in terms:
-            self.allocate(term)
-        self.pc = len(self.memory)
-        self.program.extend(list(self.memory))
-        for term in terms:
-            self._translate_(term)
-
+            self._translate(term)
         self.op["HALT"]()
 
-        return list(self.program), self.vars
+        program = {
+            "data": list(self.memory),
+            "program": list(self.program)
+        }
+
+        return program, self.vars
 
 
 def main(args):
@@ -566,9 +569,9 @@ def main(args):
 
     text = pre_process(source)
     tokens = tokenize(text)
-    AST = buildAST(tokens)
+    ast = build_ast(tokens)
     translator = Translator()
-    program, _ = translator.translate(AST)
+    program, _ = translator.translate(ast)
     print("source LoC:", len(source.split()), "code instr:",
           len(program))
 
