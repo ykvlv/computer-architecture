@@ -1,4 +1,4 @@
-name: computer-architecture
+name: computer-system-architecture
 
 on: [push, pull_request]
 
