@@ -369,6 +369,14 @@ def show_memory(data_memory):
             instr = f"{cell['opcode']:5}"
             instr += "   "
             instr += ', '.join(map(str, cell['args']))
+            while 'sub' in cell:
+                instr += f"\n{' ':73}"
+
+                instr += f"{cell['sub']['opcode']:5}"
+                instr += "   "
+                instr += ', '.join(map(str, cell['args']))
+
+                cell = cell['sub']
             data_memory_state += f"[{{{address:6}}}\
         [{address_br:12}]  -> [{'?' * 32}] = {instr:12}\n"
 
