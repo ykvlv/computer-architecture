@@ -158,9 +158,9 @@ class DataPath:
     def select_instruction(self) -> Opcode:
         if 'sub' in self.instr:
             self.instr = self.instr['sub']
-            self.log_instr_counter += 1
         else:
             self.instr = self.program_memory[self.program_counter]
+            self.log_instr_counter += 1
             self.program_counter += 1
 
         args = tuple(map(int, self.instr['args']))
@@ -402,7 +402,7 @@ def simulation(data: list, program: list, input_tokens, stack_size, limit):
 
     return ''.join(data_path.io.output_buffer), \
            f"instructions: {control_unit.data_path.log_instr_counter} " \
-           f"micro-instructions: {instr_counter} " \
+           f"micro: {instr_counter} " \
            f"ticks: {control_unit.current_tick()}", \
            show_memory(data_path.data_memory), \
            show_memory(data_path.program_memory)

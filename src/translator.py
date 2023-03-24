@@ -337,13 +337,13 @@ class Translator:
 
             self.op["ADDI"](self.SP, self.SP, 1, fst=True)
             self.op["LW"](self.X2, self.SP)
-            self.op["ADDI"](self.SP, self.SP, 1, fst=True)
+            self.op["ADDI"](self.SP, self.SP, 1)
             self.op["LW"](self.X1, self.SP)
             if operation == '@':
                 self.op["ADD"](self.X3, self.X1, self.X2, fst=True)
                 self.op["LW"](self.X1, self.X3)
                 self.op["SW"](self.SP, self.X1)
-                self.op["SUBI"](self.SP, self.SP, 1, fst=True)
+                self.op["SUBI"](self.SP, self.SP, 1)
 
             else:
                 match operation:
@@ -500,11 +500,11 @@ class Translator:
                         self.op["SW"](self.SP, self.X1)
                         self.op["SUBI"](self.SP, self.SP, 1)
                     # write string
-                    self.op["ADD"](self.SP, self.X3, self.X0, fst=True)
+                    self.op["ADD"](self.SP, self.X3, self.X0)
 
-                    self.op["SUBI"](self.SP, self.SP, 1)
-                    self.op["LW"](self.X1, self.SP)
-                    self.op["SW"](self.SP, self.X0)
+                    self.op["SUBI"](self.SP, self.SP, 1, fst=True)
+                    self.op["LW"](self.X1, self.SP, fst=True)
+                    self.op["SW"](self.SP, self.X0, fst=True)
                     self.op["BEQ"](self.X1, self.X0, self.FISH, fst=True)
                     self.append_unresolved_address()
 
@@ -524,7 +524,7 @@ class Translator:
                     self.append_unresolved_address()
 
                     self.op["ADDI"](self.X3, self.X0, STDOUT, fst=True)
-                    self.op["SW"](self.X3, self.X1, fst=True)
+                    self.op["SW"](self.X3, self.X1)
                     self.op["ADDI"](self.X2, self.X2, 1)
                     self.op["JMP"](self.pc - 5, fst=True)
                     self.resolve_address()

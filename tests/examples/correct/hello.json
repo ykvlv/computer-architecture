@@ -1,0 +1,398 @@
+{
+    "data": [],
+    "program": [
+        {
+            "opcode": "SW",
+            "args": [
+                "4",
+                "0"
+            ],
+            "sub": {
+                "opcode": "ADD",
+                "args": [
+                    "3",
+                    "4",
+                    "0"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                72
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                101
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                108
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                108
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                111
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                44
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                32
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                87
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                111
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                114
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                108
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                100
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "1",
+                "0",
+                33
+            ],
+            "sub": {
+                "opcode": "SW",
+                "args": [
+                    "4",
+                    "1"
+                ],
+                "sub": {
+                    "opcode": "SUBI",
+                    "args": [
+                        "4",
+                        "4",
+                        1
+                    ],
+                    "sub": {
+                        "opcode": "ADD",
+                        "args": [
+                            "4",
+                            "3",
+                            "0"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "opcode": "SUBI",
+            "args": [
+                "4",
+                "4",
+                1
+            ]
+        },
+        {
+            "opcode": "LW",
+            "args": [
+                "1",
+                "4"
+            ]
+        },
+        {
+            "opcode": "SW",
+            "args": [
+                "4",
+                "0"
+            ]
+        },
+        {
+            "opcode": "BEQ",
+            "args": [
+                "1",
+                "0",
+                21
+            ]
+        },
+        {
+            "opcode": "ADDI",
+            "args": [
+                "2",
+                "0",
+                9696
+            ]
+        },
+        {
+            "opcode": "SW",
+            "args": [
+                "2",
+                "1"
+            ]
+        },
+        {
+            "opcode": "JMP",
+            "args": [
+                14
+            ]
+        },
+        {
+            "opcode": "ADD",
+            "args": [
+                "4",
+                "3",
+                "0"
+            ]
+        },
+        {
+            "opcode": "HALT",
+            "args": []
+        }
+    ]
+}
