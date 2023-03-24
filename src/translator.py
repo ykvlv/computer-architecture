@@ -278,6 +278,7 @@ def parse_expression(tokens):
 
 class Translator:
     ARGS = "args"
+    SUB = "sub"
     OPCODE = "opcode"
     FISH = "undefined_address"
 
@@ -297,18 +298,27 @@ class Translator:
 
     def generate_commands(self, opcode):
 
-        def insert_command(rt=None, rla=None, rrb=None):
+        def insert_command(rt=None, rla=None, rrb=None, fst=False):
             args = []
             for arg in rt, rla, rrb:
                 if arg is not None:
                     args.append(arg)
-            self.program.append(
-                {
+            if fst:
+                self.program.append(
+                    {
+                        self.OPCODE: opcode,
+                        self.ARGS: args,
+                    }
+                )
+                self.pc += 1
+            else:
+                cur = self.program[-1]
+                while self.SUB in cur:
+                    cur = cur[self.SUB]
+                cur[self.SUB] = {
                     self.OPCODE: opcode,
-                    self.ARGS: args
+                    self.ARGS: args,
                 }
-            )
-            self.pc += 1
 
         return insert_command
 
@@ -324,58 +334,54 @@ class Translator:
             operation, left, right = expr
             self.solve(left)
             self.solve(right)
+
+            self.op["ADDI"](self.SP, self.SP, 1, fst=True)
+            self.op["LW"](self.X2, self.SP)
+            self.op["ADDI"](self.SP, self.SP, 1, fst=True)
+            self.op["LW"](self.X1, self.SP)
             if operation == '@':
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X2, self.SP)
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X1, self.SP)
-                self.op["ADD"](self.X3, self.X1, self.X2)
+                self.op["ADD"](self.X3, self.X1, self.X2, fst=True)
                 self.op["LW"](self.X1, self.X3)
                 self.op["SW"](self.SP, self.X1)
-                self.op["SUBI"](self.SP, self.SP, 1)
+                self.op["SUBI"](self.SP, self.SP, 1, fst=True)
 
             else:
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X2, self.SP)
-                self.op["ADDI"](self.SP, self.SP, 1)
-                self.op["LW"](self.X1, self.SP)
-
                 match operation:
                     case '==':
-                        self.op["SEQ"](self.X3, self.X1, self.X2)
+                        self.op["SEQ"](self.X3, self.X1, self.X2, fst=True)
                     case '!=':
-                        self.op["SNE"](self.X3, self.X1, self.X2)
+                        self.op["SNE"](self.X3, self.X1, self.X2, fst=True)
                     case '>':
-                        self.op["SGT"](self.X3, self.X1, self.X2)
+                        self.op["SGT"](self.X3, self.X1, self.X2, fst=True)
                     case '<':
-                        self.op["SLT"](self.X3, self.X1, self.X2)
+                        self.op["SLT"](self.X3, self.X1, self.X2, fst=True)
                     case '>=':
-                        self.op["SNL"](self.X3, self.X1, self.X2)
+                        self.op["SNL"](self.X3, self.X1, self.X2, fst=True)
                     case '<=':
-                        self.op["SNG"](self.X3, self.X1, self.X2)
+                        self.op["SNG"](self.X3, self.X1, self.X2, fst=True)
                     case '&':
-                        self.op["AND"](self.X3, self.X1, self.X2)
+                        self.op["AND"](self.X3, self.X1, self.X2, fst=True)
                     case '|':
-                        self.op["OR"](self.X3, self.X1, self.X2)
+                        self.op["OR"](self.X3, self.X1, self.X2, fst=True)
                     case '+':
-                        self.op["ADD"](self.X3, self.X1, self.X2)
+                        self.op["ADD"](self.X3, self.X1, self.X2, fst=True)
                     case '-':
-                        self.op["SUB"](self.X3, self.X1, self.X2)
+                        self.op["SUB"](self.X3, self.X1, self.X2, fst=True)
                     case '*':
-                        self.op["MUL"](self.X3, self.X1, self.X2)
+                        self.op["MUL"](self.X3, self.X1, self.X2, fst=True)
                     case '/':
-                        self.op["DIV"](self.X3, self.X1, self.X2)
+                        self.op["DIV"](self.X3, self.X1, self.X2, fst=True)
                     case '%':
-                        self.op["REM"](self.X3, self.X1, self.X2)
+                        self.op["REM"](self.X3, self.X1, self.X2, fst=True)
 
-                self.op["SW"](self.SP, self.X3)
+                self.op["SW"](self.SP, self.X3, fst=True)
                 self.op["SUBI"](self.SP, self.SP, 1)
         else:
             if expr.isdigit():
-                self.op["SWI"](self.SP, int(expr))
+                self.op["SWI"](self.SP, int(expr), fst=True)
                 self.op["SUBI"](self.SP, self.SP, 1)
             elif expr in self.vars:
-                self.op["LWI"](self.X1, self.vars[expr])
+                self.op["LWI"](self.X1, self.vars[expr], fst=True)
                 self.op["SW"](self.SP, self.X1)
                 self.op["SUBI"](self.SP, self.SP, 1)
 
@@ -384,7 +390,7 @@ class Translator:
             _, left, right = addr
             self.solve(left)
             self.solve(right)
-            self.op["ADDI"](self.SP, self.SP, 1)
+            self.op["ADDI"](self.SP, self.SP, 1, fst=True)
             self.op["LW"](self.X2, self.SP)
             self.op["ADDI"](self.SP, self.SP, 1)
             self.op["LW"](self.X1, self.SP)
@@ -392,7 +398,7 @@ class Translator:
             self.op["SW"](self.SP, self.X3)
             self.op["SUBI"](self.SP, self.SP, 1)
         else:
-            self.op["ADDI"](self.X1, self.X0, self.vars[addr])
+            self.op["ADDI"](self.X1, self.X0, self.vars[addr], fst=True)
             self.op["SW"](self.SP, self.X1)
             self.op["SUBI"](self.SP, self.SP, 1)
 
@@ -442,9 +448,9 @@ class Translator:
                 body = term[2]
                 condition_start = self.pc
                 self.solve(parse_expression(condition))
-                self.op["ADDI"](self.SP, self.SP, 1)
+                self.op["ADDI"](self.SP, self.SP, 1, fst=True)
                 self.op["LW"](self.X1, self.SP)
-                self.op["BEQ"](self.X1, self.X0, self.FISH)
+                self.op["BEQ"](self.X1, self.X0, self.FISH, fst=True)
                 self.append_unresolved_address()
                 # block init
 
@@ -453,73 +459,74 @@ class Translator:
 
                 # end blocks
                 if keyword == 'while':
-                    self.op["JMP"](condition_start)
+                    self.op["JMP"](condition_start, fst=True)
                 self.resolve_address()
             case 'get':
                 m_value = parse_expression(term[1:])
                 self.addr(m_value)
-                self.op["ADDI"](self.SP, self.SP, 1)
+                self.op["ADDI"](self.SP, self.SP, 1, fst=True)
                 self.op["LW"](self.X1, self.SP)
-                self.op["LWI"](self.X3, STDIN)
-                self.op["SW"](self.X1, self.X3)
+                self.op["LWI"](self.X3, STDIN, fst=True)
+                self.op["SW"](self.X1, self.X3, fst=True)
             case 'put':
                 if term[1].isdigit():
-                    self.op["ADDI"](self.X1, self.X0, term[1])
+                    self.op["ADDI"](self.X1, self.X0, term[1], fst=True)
                 else:
-                    vvalue = parse_expression(term[1:])
-                    self.solve(vvalue)
-                    self.op["ADDI"](self.SP, self.SP, 1)
+                    v_value = parse_expression(term[1:])
+                    self.solve(v_value)
+                    self.op["ADDI"](self.SP, self.SP, 1, fst=True)
                     self.op["LW"](self.X1, self.SP)
-                self.op["ADDI"](self.X2, self.X0, STDOUT)
+                self.op["ADDI"](self.X2, self.X0, STDOUT, fst=True)
                 # self.op["ADDI"](self.X1, self.X1, ord('0'))
-                self.op["SW"](self.X2, self.X1)
+                self.op["SW"](self.X2, self.X1, fst=True)
 
             case 'gets':
-                self.op["LWI"](self.X2, self.vars[term[1]])
-                self.op["LWI"](self.X1, STDIN)
-                self.op["BEQ"](self.X1, self.X0, self.FISH)
+                self.op["LWI"](self.X2, self.vars[term[1]], fst=True)
+                self.op["LWI"](self.X1, STDIN, fst=True)
+                self.op["BEQ"](self.X1, self.X0, self.FISH, fst=True)
                 self.append_unresolved_address()
-                self.op["SW"](self.X2, self.X1)
+                self.op["SW"](self.X2, self.X1, fst=True)
                 self.op["ADDI"](self.X2, self.X2, 1)
-                self.op["JMP"](self.pc - 4)
+                self.op["JMP"](self.pc - 4, fst=True)
                 self.resolve_address()
             case 'puts':
                 if (term[1][0], term[1][-1]) == ("'", "'"):
-                    self.op["SW"](self.SP, self.X0)
+                    self.op["SW"](self.SP, self.X0, fst=True)
                     self.op["ADD"](self.X3, self.SP, self.X0)
                     self.op["SUBI"](self.SP, self.SP, 1)
                     for character in (term[1])[1:-1]:
-                        self.op["ADDI"](self.X1, self.X0, ord(character))
+                        self.op["ADDI"](self.X1, self.X0,
+                                        ord(character), fst=True)
                         self.op["SW"](self.SP, self.X1)
                         self.op["SUBI"](self.SP, self.SP, 1)
                     # write string
-                    self.op["ADD"](self.SP, self.X3, self.X0)
+                    self.op["ADD"](self.SP, self.X3, self.X0, fst=True)
 
                     self.op["SUBI"](self.SP, self.SP, 1)
                     self.op["LW"](self.X1, self.SP)
                     self.op["SW"](self.SP, self.X0)
-                    self.op["BEQ"](self.X1, self.X0, self.FISH)
+                    self.op["BEQ"](self.X1, self.X0, self.FISH, fst=True)
                     self.append_unresolved_address()
 
-                    self.op["ADDI"](self.X2, self.X0, STDOUT)
-                    self.op["SW"](self.X2, self.X1)
+                    self.op["ADDI"](self.X2, self.X0, STDOUT, fst=True)
+                    self.op["SW"](self.X2, self.X1, fst=True)
 
-                    self.op["JMP"](self.pc - 6)
+                    self.op["JMP"](self.pc - 6, fst=True)
 
                     self.resolve_address()
 
-                    self.op["ADD"](self.SP, self.X3, self.X0)
+                    self.op["ADD"](self.SP, self.X3, self.X0, fst=True)
                 else:
                     self.op["LWI"](
-                        self.X2, self.vars[term[1]])
+                        self.X2, self.vars[term[1]], fst=True)
                     self.op["LW"](self.X1, self.X2)
-                    self.op["BEQ"](self.X1, self.X0, self.FISH)
+                    self.op["BEQ"](self.X1, self.X0, self.FISH, fst=True)
                     self.append_unresolved_address()
 
-                    self.op["ADDI"](self.X3, self.X0, STDOUT)
-                    self.op["SW"](self.X3, self.X1)
+                    self.op["ADDI"](self.X3, self.X0, STDOUT, fst=True)
+                    self.op["SW"](self.X3, self.X1, fst=True)
                     self.op["ADDI"](self.X2, self.X2, 1)
-                    self.op["JMP"](self.pc - 5)
+                    self.op["JMP"](self.pc - 5, fst=True)
                     self.resolve_address()
             case _:
                 operation = term.index('=')
@@ -527,15 +534,15 @@ class Translator:
                 expression = parse_expression(term[operation + 1:])
                 self.addr(m_value)
                 if (expression[0], expression[-1]) == ("'", "'"):
-                    self.op["ADDI"](self.SP, self.SP, 1)
+                    self.op["ADDI"](self.SP, self.SP, 1, fst=True)
                     self.op["LW"](self.X2, self.SP)
                     self.op["LW"](self.X3, self.X2)
                     for char in expression[1:-1]:
-                        self.op["SWI"](self.X3, ord(char))
+                        self.op["SWI"](self.X3, ord(char), fst=True)
                         self.op["ADDI"](self.X3, self.X3, 1)
                 else:
                     self.solve(expression)
-                    self.op["ADDI"](self.SP, self.SP, 1)
+                    self.op["ADDI"](self.SP, self.SP, 1, fst=True)
                     self.op["LW"](self.X2, self.SP)
                     self.op["ADDI"](self.SP, self.SP, 1)
                     self.op["LW"](self.X1, self.SP)
@@ -548,14 +555,14 @@ class Translator:
 
         for term in terms:
             self._translate(term)
-        self.op["HALT"]()
+        self.op["HALT"](fst=True)
 
-        program = {
+        data_and_program = {
             "data": list(self.memory),
             "program": list(self.program)
         }
 
-        return program, self.vars
+        return data_and_program, self.vars
 
 
 def main(args):
@@ -571,11 +578,11 @@ def main(args):
     tokens = tokenize(text)
     ast = build_ast(tokens)
     translator = Translator()
-    program, _ = translator.translate(ast)
+    data_and_program, _ = translator.translate(ast)
     print("source LoC:", len(source.split()), "code instr:",
-          len(program))
+          len(data_and_program['program']))
 
-    write_code(target, program)
+    write_code(target, data_and_program)
 
 
 if __name__ == '__main__':

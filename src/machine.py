@@ -147,16 +147,22 @@ class DataPath:
         self.program_memory = program
         self.io = IO([ord(token) for token in input_buffer])
         self.imm_gen = 0
-        self.instr = {"opcode": Opcode("HALT"), "args": []}
+        self.instr: dict = {"opcode": Opcode("HALT"), "args": []}
         self.current_data = 0
 
         self.ru = RegisterUnit(5, stack_vertex=len(self.data_memory) - 1)
         self.alu = ALU()
         self.bc = BranchComparator()
+        self.log_instr_counter = 0
 
     def select_instruction(self) -> Opcode:
-        self.instr = self.program_memory[self.program_counter]
-        self.program_counter += 1
+        if 'sub' in self.instr:
+            self.instr = self.instr['sub']
+            self.log_instr_counter += 1
+        else:
+            self.instr = self.program_memory[self.program_counter]
+            self.program_counter += 1
+
         args = tuple(map(int, self.instr['args']))
         opcode = Opcode(self.instr["opcode"])
         if opcode is Opcode.JMP:
@@ -275,6 +281,7 @@ class ControlUnit:
 
     def decode_and_execute_instruction(self):
         opcode = self.data_path.select_instruction()
+
         self.tick()
         if opcode is Opcode.HALT:
             raise StopIteration()
@@ -394,8 +401,9 @@ def simulation(data: list, program: list, input_tokens, stack_size, limit):
         pass
 
     return ''.join(data_path.io.output_buffer), \
-           instr_counter, \
-           control_unit.current_tick(), \
+           f"instructions: {control_unit.data_path.log_instr_counter} " \
+           f"micro-instructions: {instr_counter} " \
+           f"ticks: {control_unit.current_tick()}", \
            show_memory(data_path.data_memory), \
            show_memory(data_path.program_memory)
 
@@ -415,7 +423,7 @@ def main(args):
             input_token.append(char)
     input_token.append(chr(0))
 
-    output, instr_counter, ticks, data_memory, program_memory = simulation(
+    output, ticks_info, data_memory, program_memory = simulation(
         data, program,
         input_tokens=input_token,
         stack_size=25,
@@ -425,7 +433,7 @@ def main(args):
     logging.info("%s", f"Program memory map is\n{program_memory}")
 
     print(f"Output is `{''.join(output)}`")
-    print(f"instr_counter: {instr_counter} ticks: {ticks}")
+    print(ticks_info)
 
 
 if __name__ == '__main__':
